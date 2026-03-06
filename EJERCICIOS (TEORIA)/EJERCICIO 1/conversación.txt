@@ -1,0 +1,157 @@
+"""
+================================================================================
+                            HISTORIAL DE CONVERSACIÓN
+================================================================================
+
+--------------------------------------------------------------------------------
+USUARIO (Turno 1):
+--------------------------------------------------------------------------------
+Quiero crear una serie de clases para mi código de Python: Asignatura, que como 
+propiedades tiene un nombre (str), créditos (int), curso (int entre 1 y 4) y 
+cuatrimestre (int entre 1 y 2) y que tendrá como funciones set_curso, que cambia 
+el curso; y set_cuatrimestre, que cambia el cuatrimestre. 
+La siguiente sería la clase Persona, que tiene como propiedades apellidos (str), 
+nombre (str), dni (str) y fechaNac (date) y tiene como funciones getEdad, que nos 
+permite saber la edad de la persona. 
+Otra clase será Alumno, que hereda de Persona. Esta tendrá las siguientes propiedades: 
+asignaturas (lista de tuplas y que cada tupla contenga una Asignatura y una nota (float)) 
+y grupo (int) y como funciones tendrá set_grupo, que cambia de grupo; 
+getNúmeroCreditosSuperados, que suma los créditos de las asignaturas aprobadas (nota>=5); 
+y getNotaMedi, que nos da la nota media de todas las asignaturas.
+Por último, tendremos la clase Profesor, que hereda también de Persona. Esta tendrá 
+como propiedades nombreAsignatura (str) y alumnos (lista de Alumno) y como funciones 
+tendrá set_nota_alumno, que recibe un dni y una nota y cambia la nota de la asignatura 
+que enseña ese profesor al alumno del dni. 
+Después, tengo unos archivos .csv para probar el código para crear los objetos de 
+las clases que acabamos de definir.
+
+--------------------------------------------------------------------------------
+GEMINI (Turno 1):
+--------------------------------------------------------------------------------
+Aquí tienes el código completo en Python implementando la jerarquía de clases que has descrito.
+
+He incluido validaciones lógicas (como que el curso esté entre 1 y 4) y he resuelto el reto de actualizar la nota dentro de una tupla (que son inmutables) en la clase `Profesor`.
+
+### Código de las Clases
+
+[AQUÍ SE INSERTÓ EL CÓDIGO INICIAL CON LAS CLASES ASIGNATURA, PERSONA, ALUMNO Y PROFESOR]
+
+---
+
+### Cómo procesar los archivos CSV
+
+Para probar este código con tus archivos `.csv`, necesitarás un script que lea los archivos y cree las instancias. Aquí tienes un ejemplo de cómo estructurar esa carga de datos.
+
+Asumiré que tienes un archivo `alumnos.csv` con un formato similar a:
+`Apellidos,Nombre,DNI,FechaNacimiento(YYYY-MM-DD),Grupo`
+
+[AQUÍ SE INSERTÓ UN EJEMPLO GENÉRICO DE LECTURA DE CSV]
+
+**¿Te gustaría que adapte el lector de CSV a una estructura de columnas específica que ya tengan tus archivos?**
+
+--------------------------------------------------------------------------------
+USUARIO (Turno 2):
+--------------------------------------------------------------------------------
+Para estructurar la lectura de los .csv y que me crees los objetos, te voy a pasar 
+los nombres de los archivos y su formato: asignaturas.csv (nombre, creditos, curso, cuatrimestre), 
+alumnos.csv (apellidos, nombre, dni, fechaNac (YYYY-MM-DD), grupo) y 
+notas.csv (dni_alumno, nombre_asignatura, nota). Todo esto tengo que leerlo en el programa principal para construir los objetos
+
+--------------------------------------------------------------------------------
+GEMINI (Turno 2):
+--------------------------------------------------------------------------------
+Aquí tienes el código completo. He integrado las clases que definimos anteriormente y he añadido la lógica en el bloque principal (`main`) para leer los tres archivos CSV en el orden correcto.
+
+**La lógica de lectura es la siguiente:**
+1.  Leemos **asignaturas** y las guardamos en un diccionario (clave: nombre) para poder buscarlas rápido.
+2.  Leemos **alumnos** y los guardamos en un diccionario (clave: DNI) para poder asignarles las notas después.
+3.  Leemos **notas**, buscamos al alumno por DNI y la asignatura por nombre en los diccionarios, y vinculamos la nota.
+
+### Código Completo (Clases + Lectura de CSV)
+
+[AQUÍ SE INSERTÓ EL CÓDIGO CON LA FUNCIÓN 'cargar_datos' QUE USABA DICCIONARIOS]
+
+### Archivos de prueba
+Para que el código te funcione inmediatamente, asegúrate de que los archivos `.csv` tienen este contenido (puedes crearlos con el bloc de notas):
+
+**asignaturas.csv**
+[CONTENIDO CSV]
+
+**alumnos.csv**
+[CONTENIDO CSV]
+
+**notas.csv**
+[CONTENIDO CSV]
+
+--------------------------------------------------------------------------------
+USUARIO (Turno 3):
+--------------------------------------------------------------------------------
+me ha dado este error:  File "c:\Users\amora\Documents\1º año uni\2º CUATRIMESTRE\FP2\EJERCICIO 1\clases.py", line 150, in <module>
+    todos_los_alumnos, todas_las_asignaturas = cargar_datos()        
+                                                ~~~~~~~~~~~~^^        
+  File "c:\Users\amora\Documents\1º año uni\2º CUATRIMESTRE\FP2\EJERCICIO 1\clases.py", line 92, in cargar_datos
+    nueva_asig = Asignatura(nombre, int(creditos), int(curso), int(cuatrimestre))
+                                    ~~~^^^^^^^^^^
+ValueError: invalid literal for int() with base 10: '6.0'
+PS C:\Users\amora\Documents\1º año uni\2º CUATRIMESTRE\FP2\EJERCICIO 1>
+
+--------------------------------------------------------------------------------
+GEMINI (Turno 3):
+--------------------------------------------------------------------------------
+El error ocurre porque en tu archivo `.csv`, los números están escritos con decimales (por ejemplo, `'6.0'` en lugar de `'6'`). Python es muy estricto y la función `int()` no sabe convertir directamente una cadena de texto con un punto decimal (`"6.0"`) a un entero.
+
+Para solucionarlo, debemos convertir el texto primero a **float** (número decimal) y luego a **int**.
+
+### La solución rápida
+
+Ve a tu archivo `clases.py` y busca la **línea 92** (dentro de la función `cargar_datos`, en la sección de lectura de asignaturas).
+
+Cambia esta línea:
+`nueva_asig = Asignatura(nombre, int(creditos), int(curso), int(cuatrimestre))`
+
+Por esta nueva línea (que convierte primero a float):
+`nueva_asig = Asignatura(nombre, int(float(creditos)), int(float(curso)), int(float(cuatrimestre)))`
+
+### ¿Por qué pasa esto?
+Es probable que hayas abierto o guardado el CSV con Excel. Excel tiende a guardar los números como `6.0` en lugar de `6`. Al hacer `int(float(creditos))`, Python entiende "ah, es un 6.0, lo convierto a número (6.0) y luego le quito los decimales para que sea un entero (6)".
+
+### Código corregido de la sección `cargar_datos`
+
+Aquí tienes la función corregida para que puedas copiar y pegar esa parte y evitar errores también en el grupo del alumno, que podría sufrir lo mismo:
+
+[AQUÍ SE INSERTÓ EL FRAGMENTO DE CÓDIGO CON LA CORRECCIÓN int(float(...))]
+
+--------------------------------------------------------------------------------
+USUARIO (Turno 4):
+--------------------------------------------------------------------------------
+después de haber leído los ficheros, el objetivo es construir objetos de tipo Alumno 
+con sus notas y un Profesor que tendrá en su lista todos los alumnos del fichero. 
+Después, tendremos que mostrar el listado de alumnos de ese profesor con su nota 
+media y el número de créditos aprobados.
+
+--------------------------------------------------------------------------------
+GEMINI (Turno 4):
+--------------------------------------------------------------------------------
+Entendido. Vamos a unificar todo.
+
+A continuación tienes el **código completo y corregido**.
+
+Este código hace exactamente lo que pides:
+1.  **Incluye la corrección del error** `ValueError` (usando `int(float(...))`).
+2.  Define todas las clases (`Asignatura`, `Persona`, `Alumno`, `Profesor`).
+3.  Carga los datos de los CSV.
+4.  **En el bloque principal**: Crea un **Profesor**, le asigna **todos** los alumnos cargados y finalmente imprime el listado con la nota media y los créditos de cada uno.
+
+Copia y pega este código en tu archivo `clases.py` (sustituyendo lo que tenías antes):
+
+[AQUÍ SE INSERTÓ EL CÓDIGO FINAL COMPLETO QUE UNIFICABA TODO]
+
+### Explicación de los cambios:
+1.  **En la función `cargar_datos`**: He añadido `int(float( variable ))`. Esto soluciona tu error `ValueError`. Primero convierte el texto "6.0" a número decimal `6.0` y luego lo trunca a entero `6`.
+2.  **En la clase `Profesor`**: Me aseguré de que tuviera el método `agregar_alumno`, ya que lo usamos en el paso 3.
+3.  **En el bloque `if __name__ == "__main__":`**:
+    * Cargamos los datos.
+    * Instanciamos un objeto `Profesor` llamado "Alan Turing".
+    * Hacemos un bucle `for` para meter a **todos** los alumnos cargados dentro de la lista del profesor (`mi_profesor.agregar_alumno(alumno)`).
+    * Recorremos `mi_profesor.alumnos` e imprimimos los datos usando las funciones que programaste (`getNotaMedia` y `getNúmeroCreditosSuperados`).
+"""
