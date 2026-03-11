@@ -304,7 +304,7 @@ def main():
                           "- DEL SOL - Equipo: Real Betis B. S., Años fuera: 13."])
 
     imprimir_comparativa("Ejercicio 33", "Racha temporadas consecutivas sin tarjetas",
-                         mi_liga.racha_sin_tarjetas_jugadores_clave(3),
+                         mi_liga.racha_temporadas_sin_tarjetas(3),
                          ["- ELDUAYEN: Racha de 8 temporadas consecutivas.",
                           "- ITURRINO: Racha de 7 temporadas consecutivas.",
                           "- P. LLORENTE: Racha de 7 temporadas consecutivas."])

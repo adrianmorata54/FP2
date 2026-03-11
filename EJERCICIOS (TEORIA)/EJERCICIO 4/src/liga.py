@@ -605,15 +605,14 @@ class Liga:
         resultados.sort(key=lambda x: x[0], reverse=True)
         return [f"- {j} - Equipo: {eq}, Años fuera: {gap}." for gap, j, eq in resultados[:limite]]
 
-    def racha_sin_tarjetas_jugadores_clave(self, limite=3):
+    def racha_temporadas_sin_tarjetas(self, limite=3):
         """
-        [Ejercicio 33] Calcula la racha máxima de temporadas consecutivas sin tarjetas amarillas.
-        Centrado en un grupo específico de jugadores históricos solicitados en el enunciado.
+        [Ejercicio 33 Modificado] Calcula la racha máxima de temporadas consecutivas sin tarjetas amarillas.
+        Desempata por la racha más reciente (el año en el que terminó dicha racha).
         """
-        jugadores_objetivo = ["ELDUAYEN", "ITURRINO", "P. LLORENTE"]
-        stats_por_anio = {jugador: {} for jugador in jugadores_objetivo}
+        stats_por_anio = {}
         
-        # 1. Recopilamos y agrupamos estadísticas por año numérico
+        # 1. Recopilamos y agrupamos estadísticas por año
         for temporada, equipos_dict in self.historico.items():
             try:
                 anio = int(str(temporada).strip()[:4])
@@ -622,42 +621,62 @@ class Liga:
                 
             for nombre_equipo, equipo in equipos_dict.items():
                 for j in equipo.jugadores:
-                    if j.nombre in jugadores_objetivo:
-                        if anio not in stats_por_anio[j.nombre]:
-                            stats_por_anio[j.nombre][anio] = {'partidos': 0, 'tarjetas': 0}
-                        
-                        # Sumamos por si el jugador estuvo en varios equipos en un mismo año natural
-                        stats_por_anio[j.nombre][anio]['partidos'] += j.partidos
-                        stats_por_anio[j.nombre][anio]['tarjetas'] += j.tarjetas
+                    if j.nombre not in stats_por_anio:
+                        stats_por_anio[j.nombre] = {}
+                    
+                    if anio not in stats_por_anio[j.nombre]:
+                        stats_por_anio[j.nombre][anio] = {'partidos': 0, 'tarjetas': 0}
+                    
+                    stats_por_anio[j.nombre][anio]['partidos'] += j.partidos
+                    stats_por_anio[j.nombre][anio]['tarjetas'] += j.tarjetas
 
         resultados = []
         
-        # 2. Calculamos la racha de años limpios (0 tarjetas) para cada jugador
-        for jugador in jugadores_objetivo:
-            anios_dict = stats_por_anio[jugador]
-            
+        # 2. Calculamos la racha y guardamos en qué año terminó
+        for jugador, anios_dict in stats_por_anio.items():
+            # Filtro desde 1971 (tarjetas ya normalizadas)
             anios_limpios = [
                 anio for anio, stats in anios_dict.items() 
-                if stats['partidos'] > 0 and stats['tarjetas'] == 0
+                if anio >= 1971 and stats['partidos'] > 0 and stats['tarjetas'] == 0
             ]
             
             if not anios_limpios:
                 continue
                 
             anios_limpios.sort()
+            
             racha_max = 1
             racha_actual = 1
+            anio_fin_max = anios_limpios[0]
+            anio_fin_actual = anios_limpios[0]
             
             for i in range(1, len(anios_limpios)):
                 if anios_limpios[i] == anios_limpios[i-1] + 1:
                     racha_actual += 1
+                    anio_fin_actual = anios_limpios[i]
                 else:
-                    racha_max = max(racha_max, racha_actual)
-                    racha_actual = 1
+                    if racha_actual > racha_max:
+                        racha_max = racha_actual
+                        anio_fin_max = anio_fin_actual
+                    elif racha_actual == racha_max:
+                        # Si empata consigo mismo, nos quedamos con su racha más moderna
+                        anio_fin_max = max(anio_fin_max, anio_fin_actual)
                     
-            racha_max = max(racha_max, racha_actual)
-            resultados.append((racha_max, jugador))
+                    racha_actual = 1
+                    anio_fin_actual = anios_limpios[i]
+                    
+            # Comprobación al salir del bucle
+            if racha_actual > racha_max:
+                racha_max = racha_actual
+                anio_fin_max = anio_fin_actual
+            elif racha_actual == racha_max:
+                anio_fin_max = max(anio_fin_max, anio_fin_actual)
+                
+            # Filtramos un poco para que la lista no sea kilométrica
+            if racha_max >= 5:
+                resultados.append((racha_max, anio_fin_max, jugador))
             
-        # 3. Ordenamos resultados y aplicamos formato
-        resultados.sort(key=lambda x: (-x[0], x[1]))
-        return [f"- {j}: Racha de {r} temporadas consecutivas." for r, j in resultados[:limite]]
+        # 3. Ordenamos: 1º Mayor racha, 2º Año MÁS RECIENTE, 3º Orden alfabético
+        resultados.sort(key=lambda x: (-x[0], -x[1], x[2]))
+        
+        return [f"- {x[2]}: Racha de {x[0]} temporadas consecutivas." for x in resultados[:limite]]

@@ -9,7 +9,6 @@ class LectorDatos:
         print(f"Cargando datos desde {ruta_archivo}...")
         
         try:
-            # ¡CAMBIO AQUÍ! Usamos read_excel porque el archivo es un .xls
             df = pd.read_excel(ruta_archivo) 
         except Exception as e:
             raise Exception(f"Error al leer el archivo: {e}\n(Si te pide una librería, ejecuta 'pip install xlrd' en la terminal)")
