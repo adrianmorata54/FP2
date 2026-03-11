@@ -1,7 +1,7 @@
 # ==============================================================================
 # MÓDULO: modelos.py
 # Propósito: Definir la estructura general de cualquier algoritmo predictivo 
-# y programar la lógica específica del algoritmo K-Nearest Neighbors (KNN).
+# y programar la lógica específica de varios modelos de Machine Learning.
 # ==============================================================================
 
 # Importamos ABC para obligar a que las clases hijas sigan unas reglas estrictas
@@ -13,43 +13,40 @@ from collections import Counter
 
 from dataset import DataSet
 from registro import Registro
+import random
 
 class Modelo(ABC):
     """
     Clase base abstracta (plantilla) para cualquier algoritmo de Machine Learning.
-    Sea cual sea el algoritmo (KNN, Redes Neuronales, Árboles de Decisión...), 
-    todos deben poder "entrenarse" y "predecir".
+    Sea cual sea el algoritmo (KNN, Centroide, Regresión Lineal...), 
+    todos deben tener un comportamiento común: poder "entrenarse" y "predecir".
+    Esto se conoce como el Patrón de Diseño 'Strategy' o 'Estrategia'.
     """
     
     def __init__(self):
-        # El PDF pide inicializar los datos de entrenamiento a nulo (None en Python).
-        # Un modelo recién nacido está "vacío", no ha aprendido nada aún.
+        # Un modelo recién instanciado está "vacío", no ha aprendido nada aún.
         self.datos_entrenamiento = None
 
     def entrenar(self, dataset: DataSet):
         """
-        Fase de aprendizaje. 
-        En el algoritmo KNN, "entrenar" es simplemente memorizar los datos.
-        A esto en Machine Learning se le llama "Lazy Learning" (Aprendizaje Vago),
-        porque el algoritmo no hace ningún cálculo matemático complejo ahora, 
-        sino que lo deja todo para el momento en que se le pida predecir.
+        Fase de aprendizaje base. 
+        Guarda los datos en la memoria del modelo. Las clases hijas pueden 
+        sobreescribir este método si necesitan hacer cálculos matemáticos previos.
         """
         self.datos_entrenamiento = dataset
 
     @abstractmethod
     def predecir(self, registro: Registro):
         """
-        Método abstracto. Obligamos a que cada algoritmo concreto (como nuestro KNN)
-        programe su propia forma matemática de adivinar el futuro.
+        Método abstracto. Obligamos a que cada algoritmo concreto programe 
+        su propia forma matemática de adivinar el futuro.
         """
         pass
 
 
 # ==============================================================================
-# ALGORITMO ESPECÍFICO: K-NEAREST NEIGHBORS (K-Vecinos más cercanos)
+# ALGORITMOS BASADOS EN INSTANCIAS (LAZY LEARNING)
 # ==============================================================================
-
-
 
 class Clasificador_kNN(Modelo):
     """
@@ -58,28 +55,17 @@ class Clasificador_kNN(Modelo):
     """
     
     def __init__(self, k: int, distancia: str = "euclídea", pesos: list[float] = None):
-        # super().__init__() llama al constructor del padre (Modelo) para que 
-        # nos cree la variable self.datos_entrenamiento = None automáticamente.
         super().__init__()
-        
-        # Guardamos la configuración de nuestro algoritmo
         self.k = k
         self.distancia = distancia
         self.pesos = pesos
 
     def predecir(self, registro: Registro) -> str:
-        """
-        Dado un paciente nuevo (registro) sin etiqueta, el algoritmo compara sus atributos
-        con todos los pacientes que memorizó durante el entrenamiento para adivinar su enfermedad.
-        """
-        # 1. Medida de seguridad: Un estudiante no puede hacer un examen si no ha estudiado.
-        # Un modelo no puede predecir si no ha sido entrenado.
+        # Medida de seguridad vital:
         if self.datos_entrenamiento is None:
             raise ValueError("¡El modelo no ha sido entrenado todavía!")
             
-        # 2. BUSCAR LOS VECINOS: Invocamos al método de nuestro Laboratorio 1
-        # Le pasamos la lista de tooooodos los pacientes almacenados, la 'k', el tipo de distancia y los pesos.
-        # Esto nos devuelve una lista con las POSICIONES (índices) de los ganadores.
+        # 1. BUSCAR LOS VECINOS
         indices_vecinos = registro.k_vecinos(
             self.datos_entrenamiento.registros, 
             self.k, 
@@ -87,24 +73,153 @@ class Clasificador_kNN(Modelo):
             self.pesos
         )
         
-        # 3. EXTRAER LAS ETIQUETAS:
-        # Ya sabemos quiénes son los pacientes más cercanos, ahora queremos ver 
-        # qué enfermedad (o clase) tenían esos pacientes en la vida real.
+        # 2. EXTRAER LAS ETIQUETAS
         etiquetas_vecinos = []
         for indice in indices_vecinos:
-            # Buscamos al paciente original en la base de datos de entrenamiento
             vecino = self.datos_entrenamiento.registros[indice]
-            # Nos guardamos su etiqueta (ej: "Iris-setosa", "Diabetes Positiva")
             etiquetas_vecinos.append(vecino.objetivo)
             
-        # 4. VOTACIÓN DEMOCRÁTICA (MODA):
-        # Counter coge la lista (ej: ["Grave", "Leve", "Grave"]) y las cuenta.
+        # 3. VOTACIÓN DEMOCRÁTICA (MODA)
+        # Counter coge la lista (ej: ["Sano", "Enfermo", "Sano"]) y las cuenta.
         conteo = Counter(etiquetas_vecinos)
         
-        # most_common(1) devuelve una lista con el elemento más repetido y cuántas veces salió.
-        # Ejemplo del resultado: [('Grave', 2)]
-        # El primer [0] accede a la tupla ('Grave', 2). El segundo [0] extrae el texto "Grave".
+        # most_common(1) devuelve una lista de tuplas: [('Sano', 2)]
+        # El primer [0] accede a la tupla ('Sano', 2). El segundo [0] extrae el texto "Sano".
         etiqueta_ganadora = conteo.most_common(1)[0][0]
         
-        # Devolvemos nuestra predicción final
         return etiqueta_ganadora
+
+
+class Regresor_kNN(Modelo):
+    """
+    Modelo KNN adaptado para Regresión (predecir números continuos, como el precio de una casa).
+    En lugar de hacer una "votación" para ver qué clase gana, calcula la MEDIA de sus vecinos.
+    """
+    def __init__(self, k: int, distancia: str = "euclídea", pesos: list[float] = None):
+        super().__init__()
+        self.k = k
+        self.distancia = distancia
+        self.pesos = pesos
+
+    def predecir(self, registro: Registro) -> float:
+        if self.datos_entrenamiento is None:
+            raise ValueError("¡El modelo no ha sido entrenado todavía!")
+            
+        indices_vecinos = registro.k_vecinos(
+            self.datos_entrenamiento.registros, 
+            self.k, 
+            self.distancia,
+            self.pesos
+        )
+        
+        # En Regresión, en lugar de contar etiquetas de texto, SUMAMOS los números
+        suma_objetivos = 0.0
+        for indice in indices_vecinos:
+            vecino = self.datos_entrenamiento.registros[indice]
+            suma_objetivos += vecino.objetivo
+            
+        # Y devolvemos la Media Aritmética
+        return suma_objetivos / self.k
+
+
+# ==============================================================================
+# ALGORITMOS BASADOS EN MODELO (EAGER LEARNING)
+# ==============================================================================
+
+
+class Clasificador_centroide(Modelo):
+    """
+    Clasificador basado en el "Punto Medio" (Centroide).
+    Calcula un único punto central (registro fantasma) por cada clase durante el entrenamiento.
+    """
+    def __init__(self, distancia: str = "euclídea"):
+        super().__init__()
+        self.distancia = distancia
+        self.centroides = {} 
+
+    def entrenar(self, dataset: DataSet):
+        # Sobreescribimos el método entrenar porque este algoritmo SÍ hace matemáticas al estudiar
+        super().entrenar(dataset)
+        
+        # 1. Agrupamos los registros por su clase (ej: todos los "Iris-setosa" juntos)
+        agrupados = {}
+        for reg in dataset.registros:
+            etiqueta = reg.objetivo
+            if etiqueta not in agrupados:
+                agrupados[etiqueta] = []
+            agrupados[etiqueta].append(reg.atributos)
+            
+        # 2. Calculamos la media de cada columna para crear el "Centroide"
+        num_atributos = len(dataset.registros[0].atributos)
+        self.centroides = {}
+        
+        for etiqueta, lista_atributos in agrupados.items():
+            centroide_attrs = []
+            num_registros = len(lista_atributos)
+            
+            for i in range(num_atributos):
+                suma = sum(atributos[i] for atributos in lista_atributos)
+                centroide_attrs.append(suma / num_registros)
+                
+            # Creamos un Registro "fantasma" que representa el centro perfecto de esa clase
+            self.centroides[etiqueta] = Registro(centroide_attrs)
+
+    def predecir(self, registro: Registro) -> str:
+        if not self.centroides:
+            raise ValueError("¡El modelo no ha sido entrenado todavía!")
+            
+        etiqueta_ganadora = None
+        distancia_minima = float('inf')
+        
+        # BÚSQUEDA SÚPER RÁPIDA: Solo comparamos contra los 3 o 4 centroides, no contra toda la base de datos
+        for etiqueta, centroide in self.centroides.items():
+            dist = registro.calcula_distancia(centroide, self.distancia)
+            if dist < distancia_minima:
+                distancia_minima = dist
+                etiqueta_ganadora = etiqueta
+                
+        return etiqueta_ganadora
+
+
+
+class Regresor_lineal_multiple(Modelo):
+    """
+    Aproximación heurística a una recta de regresión múltiple.
+    Usa el algoritmo de Gradiente Descendente Estocástico (SGD).
+    """
+    def __init__(self, tasa_aprendizaje: float = 0.0001, epocas: int = 100):
+        super().__init__()
+        self.pesos = []
+        self.sesgo = 0.0 # El punto donde la recta corta el eje Y (Intercepto)
+        self.tasa_aprendizaje = tasa_aprendizaje # El tamaño de los "pasos" que da para aprender
+        self.epocas = epocas # Cuántas veces repasa el dataset entero para aprender
+
+    def entrenar(self, dataset: DataSet):
+        super().entrenar(dataset)
+        num_atributos = len(dataset.registros[0].atributos)
+        
+        # 1. Inicialización Aleatoria (Empezamos con una recta al azar)
+        self.pesos = [random.uniform(-0.1, 0.1) for _ in range(num_atributos)]
+        self.sesgo = random.uniform(-0.1, 0.1)
+        
+        # 2. Gradiente Descendente: Aprendemos de los errores a base de iteraciones
+        for _ in range(self.epocas):
+            for reg in dataset.registros:
+                # Predecimos con la fórmula de la recta: Y = Sesgo + (Peso1*X1) + (Peso2*X2)...
+                pred = self.sesgo + sum(w * x for w, x in zip(self.pesos, reg.atributos))
+                
+                # Vemos por cuánto nos hemos equivocado (Error real)
+                error = pred - reg.objetivo
+                
+                # Penalizamos (corregimos) nuestro sesgo y nuestros pesos para equivocarnos menos
+                # Restamos el error multiplicado por la tasa de aprendizaje
+                self.sesgo -= self.tasa_aprendizaje * error
+                for i in range(num_atributos):
+                    self.pesos[i] -= self.tasa_aprendizaje * error * reg.atributos[i]
+
+    def predecir(self, registro: Registro) -> float:
+        if not self.pesos:
+            raise ValueError("¡El modelo no ha sido entrenado todavía!")
+            
+        # Aplicamos la ecuación matemática de la recta aprendida de forma instantánea
+        return self.sesgo + sum(w * x for w, x in zip(self.pesos, registro.atributos))
