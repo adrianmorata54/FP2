@@ -1,5 +1,5 @@
 import os
-from lector import LectorDatos
+from factoria import Factoria
 
 def imprimir_comparativa(numero_ejercicio, titulo, obtenidos, esperados):
     """
@@ -28,8 +28,16 @@ def main():
     
     # 2. Cargar la base de datos (Esto tardará unos segundos la primera vez)
     print("Cargando la base de datos histórica... (Por favor, espera un momento)")
-    mi_liga = LectorDatos.construir_liga(ruta_datos)
+    mi_liga = Factoria.construir_liga(ruta_datos)
     
+    # =========================================================
+    # PRUEBAS BOLETÍN 5 - PROPIEDADES DERIVADAS DE LIGA
+    # =========================================================
+    print("\n" + "#"*70 + "\n RESOLUCIÓN BOLETÍN 5 - PROPIEDADES DERIVADAS\n" + "#"*70)
+    print(f" - Número total de temporadas registradas: {mi_liga.num_temporadas}")
+    print(f" - Temporadas NO jugadas (Guerra Civil u otros): {mi_liga.num_temporadas_no_jugadas}")
+
+
     print("\n" + "#"*70 + "\n RESOLUCIÓN BOLETÍN 4 - PRIMERA SEMANA (Ejercicios 1 al 16)\n" + "#"*70)
 
     # ---------------------------------------------------------
