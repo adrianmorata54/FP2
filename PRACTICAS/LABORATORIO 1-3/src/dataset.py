@@ -126,7 +126,6 @@ class DataSet(ABC):
     
     def eliminar_atributos(self, indices_a_eliminar: list[int]) -> 'DataSet':
         """
-        (LABORATORIO 3 - ETAPA 10)
         Devuelve un DataSet nuevo eliminando las columnas especificadas.
         Permite la reducción de dimensionalidad para mejorar el rendimiento del modelo.
         """

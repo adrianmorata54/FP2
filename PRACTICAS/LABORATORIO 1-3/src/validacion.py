@@ -69,14 +69,15 @@ class Validacion(ABC):
 
     
 
-    def validacion_cruzada(self, modelo: Modelo, dataset: DataSet, m_bolsas: int, normalizador: Preprocesamiento = None) -> dict:
+    def validacion_cruzada(self, modelo: Modelo, dataset: DataSet, m_bolsas: int, normalizador: Preprocesamiento = None, shuffle: bool = True) -> dict:
         """
         Técnica 'K-Fold Cross-Validation' (Validación Cruzada en m bolsas).
         Es mucho más robusta que el Hold-Out porque todo dato se usa para entrenar
         y TODO dato se usa (una vez) para testear. Devuelve la nota media.
         """
         registros = dataset.registros.copy()
-        random.shuffle(registros)
+        if shuffle:
+            random.shuffle(registros)
 
         # Repartimos los registros en 'm' bolsas equitativamente usando List Comprehension con saltos
         bolsas = [registros[i::m_bolsas] for i in range(m_bolsas)]

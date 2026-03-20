@@ -381,18 +381,20 @@ class Liga:
         return [f"- {j}: {int(p)} partidos enteros sin celebrar un gol." for p, j in resultados[:limite]]
 
     def goleadores_tres_decadas(self, limite=5):
-        """[Ejercicio 18] Goles en tres décadas (20s, 30s, 40s)."""
+        """[Ejercicio 18] Goles en tres décadas."""
         decadas_goles = defaultdict(set)
         
         for temp, _, j in self._iterar_historial():
             if j.goles > 0:
                 anio = temp.año_inicio # Usamos la propiedad
-                if 1920 <= anio <= 1949:
-                    decada = (anio // 10) * 10
-                    decadas_goles[j.nombre].add(decada)
+                decada = (anio // 10) * 10
+                decadas_goles[j.nombre].add(decada)
         
-        resultados = [j for j, decs in decadas_goles.items() if len(decs) == 3]
-        return [f"- {j}: Goles en 3 décadas distintas (1920, 1930, 1940)." for j in resultados[:limite]]
+        # CAMBIO 1: Guardamos el nombre (j) y la lista de décadas ordenadas (sorted(decs))
+        resultados = [(j, sorted(decs)) for j, decs in decadas_goles.items() if len(decs) == 3]
+        
+        # CAMBIO 2: Desempaquetamos j y decs, e imprimimos las posiciones 0, 1 y 2
+        return [f"- {j}: Goles en 3 décadas distintas ({decs[0]}, {decs[1]}, {decs[2]})." for j, decs in resultados[:limite]]
 
     def temporadas_mas_descensos(self):
         """[Ejercicio 19] Temporadas en las que descendieron 4 o más equipos."""
