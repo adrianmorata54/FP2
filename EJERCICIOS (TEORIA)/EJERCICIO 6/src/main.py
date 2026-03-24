@@ -9,10 +9,6 @@ if __name__ == "__main__":
         print("  📊 ANÁLISIS DE RESULTADOS ELECTORALES 📊")
         print("="*50)
 
-        # --- COMPROBACIÓN INICIAL ---
-        # Ejecuta D'Hondt primero para tener los cálculos del último escaño y verificar datos
-        nacion.comprobar_escanos_oficiales() 
-        
         # --- PREGUNTA 2 ---
         nacion.analizar_votos_nulos_blancos()
         
@@ -24,6 +20,12 @@ if __name__ == "__main__":
         
         # --- PREGUNTA 5 ---
         nacion.cera_proporcion_poblacion()
+        
+        # --- PREGUNTA 6 ---
+        nacion.escanos_por_circunscripcion("Huelva")
+        
+        # --- PREGUNTA 7 ---
+        nacion.comprobar_escanos_oficiales() 
         
         # --- PREGUNTA 9 ---
         nacion.analizar_ultimo_escano()

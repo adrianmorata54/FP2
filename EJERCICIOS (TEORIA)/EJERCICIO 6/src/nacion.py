@@ -1,7 +1,9 @@
-from comunidad_autonoma import ComunidadAutonoma
-import matplotlib.pyplot as plt
 import itertools
+import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
+from typing import Dict, List, Optional
+
+from comunidad_autonoma import ComunidadAutonoma
 
 class Nacion:
     """
@@ -13,86 +15,86 @@ class Nacion:
     # 🛠️ MÉTODOS BASE Y CONFIGURACIÓN
     # ==========================================
     
-    def __init__(self, nombre="España"):
+    def __init__(self, nombre: str = "España"):
         self.nombre = nombre
-        self.comunidades = {} 
+        self.comunidades: Dict[str, ComunidadAutonoma] = {} 
         
-    def agregar_comunidad(self, comunidad: ComunidadAutonoma):
+    def agregar_comunidad(self, comunidad: ComunidadAutonoma) -> None:
         """Añade un objeto ComunidadAutonoma al diccionario de la nación."""
         self.comunidades[comunidad.nombre] = comunidad
 
-    def comprobar_escanos_oficiales(self):
+    def _filtrar(self, tipo_retorno: str, nombre_ccaa: Optional[str] = None, nombre_circ: Optional[str] = None, nombre_partido: Optional[str] = None) -> list:
         """
-        Comprueba que los escaños calculados mediante la Ley D'Hondt 
-        coinciden exactamente con los datos oficiales del Ministerio.
+        Filtro universal de la Nación. Altamente optimizado delegando iteraciones a C (extend).
         """
-        print("\n--- COMPROBACIÓN REPARTO D'HONDT ---")
-        errores = 0
-        
+        resultados = []
+        f_ccaa = nombre_ccaa.strip().upper() if nombre_ccaa else None
+        f_circ = nombre_circ.strip().upper() if nombre_circ else None
+        f_part = nombre_partido.strip().upper() if nombre_partido else None
+
         for ccaa in self.comunidades.values():
-            for circ in ccaa.circunscripciones:
-                circ.aplicar_ley_dhondt() # Se asume que esto ya se ha llamado antes, pero aseguramos
+            if f_ccaa and ccaa.nombre.upper() != f_ccaa:
+                continue
+            
+            if tipo_retorno == 'ccaa':
+                resultados.append(ccaa)
+                continue
                 
-                for p in circ.partidos:
-                    if p.escanos_calculados != p.escanos_oficiales:
-                        print(f"❌ Discrepancia en {circ.nombre} para {p.nombre}: Oficial={p.escanos_oficiales}, Calculado={p.escanos_calculados}")
-                        errores += 1
+            for circ in ccaa.circunscripciones:
+                if f_circ and circ.nombre.upper() != f_circ:
+                    continue
+                    
+                if tipo_retorno == 'circunscripcion':
+                    resultados.append(circ)
+                    continue
+                    
+                # 🔥 OPTIMIZACIÓN MÁXIMA CON EXTEND 🔥
+                if tipo_retorno == 'partido':
+                    if f_part:
+                        resultados.extend([p for p in circ.partidos if p.nombre.upper() == f_part])
+                    else:
+                        resultados.extend(circ.partidos)
                         
-        if errores == 0:
-            print("✅ ¡ÉXITO! Todos los escaños calculados coinciden exactamente con los datos oficiales.")
-        else:
-            print(f"⚠️ Se encontraron {errores} discrepancias.")
+        return resultados
 
     # ==========================================
     # 📊 PREGUNTAS DE LA PRÁCTICA (EN ORDEN)
     # ==========================================
 
     # --- PREGUNTAS 1 y 8: Gráficos de Votos y Escaños (INTERACTIVO) ---
-    def graficar_resultados(self, nivel="nacional", nombre_filtro=None):
+    def graficar_resultados(self, nivel: str = "nacional", nombre_filtro: Optional[str] = None) -> None:
         """
         Muestra gráficos interactivos (Sectores y Barras) pudiendo alternar 
         entre Votos (P1) y Escaños (P8) en tiempo real con un botón.
-        Nivel puede ser: 'nacional', 'ccaa', o 'circunscripcion'.
         """
-        datos_escanos = {}
-        datos_votos = {}
+        datos_escanos: Dict[str, int] = {}
+        datos_votos: Dict[str, int] = {}
         titulo_extra = "Nacional"
 
+        partidos_a_graficar = []
         if nivel == "nacional":
-            for ccaa in self.comunidades.values():
-                for circ in ccaa.circunscripciones:
-                    for p in circ.partidos:
-                        datos_escanos[p.nombre] = datos_escanos.get(p.nombre, 0) + p.escanos_oficiales
-                        datos_votos[p.nombre] = datos_votos.get(p.nombre, 0) + p.votos
-                        
+            partidos_a_graficar = self._filtrar('partido')
         elif nivel == "ccaa":
-            ccaa = self.comunidades.get(nombre_filtro)
-            if not ccaa: return print("CCAA no encontrada")
             titulo_extra = nombre_filtro
-            for circ in ccaa.circunscripciones:
-                for p in circ.partidos:
-                    datos_escanos[p.nombre] = datos_escanos.get(p.nombre, 0) + p.escanos_oficiales
-                    datos_votos[p.nombre] = datos_votos.get(p.nombre, 0) + p.votos
-                    
+            partidos_a_graficar = self._filtrar('partido', nombre_ccaa=nombre_filtro)
         elif nivel == "circunscripcion":
-            circ_obj = None
-            for ccaa in self.comunidades.values():
-                for circ in ccaa.circunscripciones:
-                    if circ.nombre == nombre_filtro:
-                        circ_obj = circ
-                        break
-            if not circ_obj: return print("Circunscripción no encontrada")
             titulo_extra = nombre_filtro
-            for p in circ_obj.partidos:
-                datos_escanos[p.nombre] = p.escanos_oficiales
-                datos_votos[p.nombre] = p.votos
+            partidos_a_graficar = self._filtrar('partido', nombre_circ=nombre_filtro)
 
+        if not partidos_a_graficar:
+            print(f"⚠️ No se encontraron datos para el nivel '{nivel}' con filtro '{nombre_filtro}'")
+            return
+
+        for p in partidos_a_graficar:
+            datos_escanos[p.nombre] = datos_escanos.get(p.nombre, 0) + p.escanos_oficiales
+            datos_votos[p.nombre] = datos_votos.get(p.nombre, 0) + p.votos
+
+        # --- Lógica de Matplotlib ---
         fig, ax = plt.subplots(figsize=(14, 8))
         estado = {'pagina': 0, 'tipo': 'escanos'} 
         
         def dibujar_grafico():
             ax.clear() 
-            
             datos_actuales = datos_escanos if estado['tipo'] == 'escanos' else datos_votos
             datos_filtrados = {k: v for k, v in datos_actuales.items() if v > 0}
             
@@ -171,129 +173,140 @@ class Nacion:
         plt.show()
 
     # --- PREGUNTA 2: Análisis de votos nulos y blancos ---
-    def analizar_votos_nulos_blancos(self):
+    def analizar_votos_nulos_blancos(self) -> None:
         """Calcula las circunscripciones y CCAA con mayor % de nulos y blancos."""
         print("\n--- P2: ANÁLISIS DE VOTOS NULOS Y BLANCOS ---")
-        max_pct_prov = 0
-        prov_max = ""
         
-        # 1. Usando la propiedad de la Circunscripcion
-        for ccaa in self.comunidades.values():
-            for circ in ccaa.circunscripciones:
-                pct = circ.porcentaje_nulos_blancos
-                if pct > max_pct_prov:
-                    max_pct_prov = pct
-                    prov_max = circ.nombre
-                        
+        # 1. Por Provincia
+        max_pct_prov, prov_max = 0.0, ""
+        for circ in self._filtrar('circunscripcion'):
+            if circ.porcentaje_nulos_blancos > max_pct_prov:
+                max_pct_prov, prov_max = circ.porcentaje_nulos_blancos, circ.nombre
         print(f"La circunscripción con mayor porcentaje de nulos/blancos es {prov_max} con un {max_pct_prov:.2f}%")
 
-        # 2. Usando las propiedades de la Comunidad Autónoma
-        max_pct_ccaa = 0
-        ccaa_max = ""
-        
-        for ccaa in self.comunidades.values():
-            if ccaa.votos_validos > 0:
-                pct = (ccaa.votos_nulos_y_blancos / ccaa.votos_validos) * 100
-                if pct > max_pct_ccaa:
-                    max_pct_ccaa = pct
-                    ccaa_max = ccaa.nombre
-                    
+        # 2. Por CCAA
+        max_pct_ccaa, ccaa_max = 0.0, ""
+        for ccaa in self._filtrar('ccaa'):
+            if ccaa.porcentaje_nulos_blancos > max_pct_ccaa:
+                max_pct_ccaa, ccaa_max = ccaa.porcentaje_nulos_blancos, ccaa.nombre
         print(f"La CCAA con mayor porcentaje de nulos/blancos es {ccaa_max} con un {max_pct_ccaa:.2f}%")
 
-    # --- PREGUNTA 3: Participación CERA real (Votantes CERA / Censo CERA) ---
-    def analizar_participacion_cera_real(self):
-        """Calcula qué proporción del Censo CERA acudió realmente a votar por Provincia y CCAA."""
+    # --- PREGUNTA 3: Participación CERA real ---
+    def analizar_participacion_cera_real(self) -> None:
+        """Calcula qué proporción del Censo CERA acudió realmente a votar."""
         print("\n--- P3: PARTICIPACIÓN CERA ---")
-        max_circ_pct = 0
-        max_circ_nombre = ""
         
         # 1. Por circunscripción
-        for ccaa in self.comunidades.values():
-            for circ in ccaa.circunscripciones:
-                if circ.censo_cera > 0:
-                    pct = (circ.votantes_cera / circ.censo_cera) * 100
-                    if pct > max_circ_pct:
-                        max_circ_pct = pct
-                        max_circ_nombre = circ.nombre
+        max_circ_pct, max_circ_nombre = 0.0, ""
+        for circ in self._filtrar('circunscripcion'):
+            if circ.participacion_cera_porcentaje > max_circ_pct:
+                max_circ_pct, max_circ_nombre = circ.participacion_cera_porcentaje, circ.nombre
                         
         if max_circ_pct > 0:
             print(f"Circunscripción con mayor participación CERA: {max_circ_nombre} ({max_circ_pct:.2f}%)")
         else:
-            print("⚠️ No constan votos CERA emitidos en la circunscripción para calcular la participación.")
+            print("⚠️ No constan votos CERA emitidos.")
 
-        # 2. Usando las propiedades de la Comunidad Autónoma
-        max_ccaa_pct = 0
-        max_ccaa_nombre = ""
-        
-        for ccaa in self.comunidades.values():
-            if ccaa.censo_cera > 0:
-                pct = (ccaa.votantes_cera / ccaa.censo_cera) * 100
-                if pct > max_ccaa_pct:
-                    max_ccaa_pct = pct
-                    max_ccaa_nombre = ccaa.nombre
+        # 2. Por CCAA
+        max_ccaa_pct, max_ccaa_nombre = 0.0, ""
+        for ccaa in self._filtrar('ccaa'):
+            if ccaa.participacion_cera_porcentaje > max_ccaa_pct:
+                max_ccaa_pct, max_ccaa_nombre = ccaa.participacion_cera_porcentaje, ccaa.nombre
         
         if max_ccaa_pct > 0:
             print(f"CCAA con mayor participación CERA: {max_ccaa_nombre} ({max_ccaa_pct:.2f}%)")
             
     # --- PREGUNTA 4: Partidos en exactamente N circunscripciones ---
-    def partidos_en_n_circunscripciones(self, n):
+    def partidos_en_n_circunscripciones(self, n: int) -> List[str]:
         """Devuelve una lista de partidos que se presentaron exactamente en N provincias."""
         print(f"\n--- P4: PARTIDOS EN EXACTAMENTE {n} CIRCUNSCRIPCIONES ---")
-        apariciones = {}
-        for ccaa in self.comunidades.values():
-            for circ in ccaa.circunscripciones:
-                for p in circ.partidos:
-                    apariciones[p.nombre] = apariciones.get(p.nombre, 0) + 1
+        apariciones: Dict[str, int] = {}
+        
+        for p in self._filtrar('partido'):
+            apariciones[p.nombre] = apariciones.get(p.nombre, 0) + 1
                     
         resultado = [partido for partido, count in apariciones.items() if count == n]
         print(f"Partidos encontrados: {resultado}")
         return resultado
 
     # --- PREGUNTA 5: CCAA con mayor proporción Censo CERA / Censo Total ---
-    def cera_proporcion_poblacion(self):
+    def cera_proporcion_poblacion(self) -> None:
         """Identifica la CCAA con mayor peso de votantes extranjeros respecto a su censo total."""
         print("\n--- P5: PROPORCIÓN CENSO CERA VS CENSO TOTAL ---")
-        max_prop_cera = 0
-        ccaa_cera_max = ""
+        max_prop_cera, ccaa_cera_max = 0.0, ""
         
-        # Usando las propiedades de la Comunidad Autónoma
-        for ccaa in self.comunidades.values():
-            if ccaa.censo_total > 0:
-                proporcion = (ccaa.censo_cera / ccaa.censo_total) * 100
-                if proporcion > max_prop_cera:
-                    max_prop_cera = proporcion
-                    ccaa_cera_max = ccaa.nombre
+        for ccaa in self._filtrar('ccaa'):
+            if ccaa.proporcion_cera_sobre_censo > max_prop_cera:
+                max_prop_cera, ccaa_cera_max = ccaa.proporcion_cera_sobre_censo, ccaa.nombre
                     
         print(f"La CCAA con mayor proporción CERA es {ccaa_cera_max} con un {max_prop_cera:.2f}%")
 
+    # --- PREGUNTA 6: Escaños en una circunscripción concreta ---
+    def escanos_por_circunscripcion(self, nombre_circ: str) -> Optional[Dict[str, int]]:
+        """Devuelve y muestra el número de escaños de cada partido en una circunscripción."""
+        print(f"\n--- P6: REPARTO D'HONDT EN {nombre_circ.upper()} ---")
+        
+        circunscripciones = self._filtrar("circunscripcion", nombre_circ=nombre_circ)
+        
+        if not circunscripciones:
+            print(f"⚠️ No se encontró la circunscripción '{nombre_circ}'.")
+            return None
+            
+        circ = circunscripciones[0] 
+        circ.aplicar_ley_dhondt()
+        
+        resultados = {}
+        partidos_con_escano = [p for p in circ.partidos if p.escanos_calculados > 0]
+        partidos_con_escano.sort(reverse=True)
+        
+        for p in partidos_con_escano:
+            resultados[p.nombre] = p.escanos_calculados
+            print(f" - {p.nombre}: {p.escanos_calculados} escaños")
+            
+        return resultados
+
+    # --- PREGUNTA 7: Comprobación con los datos del Excel ---
+    def comprobar_escanos_oficiales(self) -> None:
+        """Comprueba que los escaños calculados coinciden exactamente con los datos oficiales."""
+        print("\n--- P7: COMPROBACIÓN REPARTO D'HONDT VS OFICIAL EXCEL ---")
+        errores = 0
+        
+        for circ in self._filtrar('circunscripcion'):
+            circ.aplicar_ley_dhondt() 
+            for p in circ.partidos:
+                if p.escanos_calculados != p.escanos_oficiales:
+                    print(f"❌ Discrepancia en {circ.nombre} para {p.nombre}: Oficial={p.escanos_oficiales}, Calculado={p.escanos_calculados}")
+                    errores += 1
+                        
+        if errores == 0:
+            print("✅ ¡ÉXITO! Todos los escaños calculados coinciden con los oficiales.")
+        else:
+            print(f"⚠️ Se encontraron {errores} discrepancias.")
+    
     # --- PREGUNTA 9: Último escaño de cada provincia ---
-    def analizar_ultimo_escano(self):
+    def analizar_ultimo_escano(self) -> None:
         """Muestra quién se llevó el último escaño en cada provincia y quién fue el subcampeón."""
         print("\n--- P9: ANÁLISIS DEL ÚLTIMO ESCAÑO ---")
-        for ccaa in self.comunidades.values():
-            for circ in ccaa.circunscripciones:
-                if hasattr(circ, 'ultimo_escano') and circ.ultimo_escano:
-                    print(f"{circ.nombre}: Último escaño -> {circ.ultimo_escano.nombre}. Subcampeón -> {circ.subcampeon.nombre} (Le faltaron {circ.votos_faltantes} votos).")
+        for circ in self._filtrar('circunscripcion'):
+            if circ.ultimo_escano:
+                print(f"{circ.nombre}: Último escaño -> {circ.ultimo_escano.nombre}. Subcampeón -> {circ.subcampeon.nombre} (Faltaron {circ.votos_faltantes} votos).")
 
     # --- PREGUNTAS 10 y 11: Escaños más baratos y más caros ---
-    def analizar_coste_escanos(self):
+    def analizar_coste_escanos(self) -> None:
         """Calcula cuántos votos ha costado cada escaño a nivel Nacional y Provincial."""
-        print("\n--- P10 y P11: COSTE DE ESCAÑOS (MÁS BARATOS Y MÁS CAROS) ---")
+        print("\n--- P10 y P11: COSTE DE ESCAÑOS ---")
+        votos_nac: Dict[str, int] = {}
+        escanos_nac: Dict[str, int] = {}
+        costes_circ: Dict[tuple, float] = {}
         
-        votos_nac = {}
-        escanos_nac = {}
-        costes_circ = {}
-        
-        for ccaa in self.comunidades.values():
-            for circ in ccaa.circunscripciones:
-                for p in circ.partidos:
-                    # Nacional
-                    votos_nac[p.nombre] = votos_nac.get(p.nombre, 0) + p.votos
-                    escanos_nac[p.nombre] = escanos_nac.get(p.nombre, 0) + p.escanos_oficiales
-                    # Provincial
-                    if p.escanos_oficiales > 0:
-                        costes_circ[(p.nombre, circ.nombre)] = p.votos / p.escanos_oficiales
-                        
+        for circ in self._filtrar('circunscripcion'):
+            for p in circ.partidos:
+                votos_nac[p.nombre] = votos_nac.get(p.nombre, 0) + p.votos
+                escanos_nac[p.nombre] = escanos_nac.get(p.nombre, 0) + p.escanos_oficiales
+                
+                if p.escanos_oficiales > 0:
+                    costes_circ[(p.nombre, circ.nombre)] = p.votos / p.escanos_oficiales
+                    
         costes_nac = {p: (votos_nac[p] / escanos_nac[p]) for p in escanos_nac if escanos_nac[p] > 0}
         
         if costes_nac:
@@ -309,32 +322,29 @@ class Nacion:
             print(f"[PROVINCIAL] Escaño más BARATO: {mas_barato_circ[0]} en {mas_barato_circ[1]} ({costes_circ[mas_barato_circ]:.0f} votos/escaño)")
 
     # --- PREGUNTA 12: Circunscripciones con escaños más "baratos" ---
-    def circunscripciones_escanos_baratos(self):
+    def circunscripciones_escanos_baratos(self) -> None:
         """Calcula la provincia donde hacen falta menos votos de media para conseguir representación."""
         print("\n--- P12: COSTE MEDIO DE ESCAÑO POR CIRCUNSCRIPCIÓN ---")
-        costes_circ = {}
+        costes_circ: Dict[str, float] = {}
         
-        # Usando la propiedad total_escanos de Circunscripcion
-        for ccaa in self.comunidades.values():
-            for circ in ccaa.circunscripciones:
-                if circ.total_escanos > 0:
-                    costes_circ[circ.nombre] = circ.votos_validos / circ.total_escanos
+        for circ in self._filtrar('circunscripcion'):
+            if circ.total_escanos > 0:
+                costes_circ[circ.nombre] = circ.votos_validos / circ.total_escanos
                     
         if costes_circ:
             circ_mas_barata = min(costes_circ, key=costes_circ.get)
-            print(f"La circunscripción donde 'cuesta' menos votos sacar un diputado es {circ_mas_barata} con una media de {costes_circ[circ_mas_barata]:.0f} votos.")
+            print(f"La circunscripción donde 'cuesta' menos votos sacar un diputado es {circ_mas_barata} ({costes_circ[circ_mas_barata]:.0f} votos de media).")
 
     # --- PREGUNTA 13: Partido con más votos que NO consiguió escaño ---
-    def partido_mas_votado_sin_escano(self):
+    def partido_mas_votado_sin_escano(self) -> None:
         """Encuentra al partido a nivel nacional que más votos obtuvo sin lograr representación."""
         print("\n--- P13: PARTIDO MÁS VOTADO SIN ESCAÑO (NACIONAL) ---")
-        votos = {}
-        escanos = {}
-        for ccaa in self.comunidades.values():
-            for circ in ccaa.circunscripciones:
-                for p in circ.partidos:
-                    votos[p.nombre] = votos.get(p.nombre, 0) + p.votos
-                    escanos[p.nombre] = escanos.get(p.nombre, 0) + p.escanos_oficiales
+        votos: Dict[str, int] = {}
+        escanos: Dict[str, int] = {}
+        
+        for p in self._filtrar('partido'):
+            votos[p.nombre] = votos.get(p.nombre, 0) + p.votos
+            escanos[p.nombre] = escanos.get(p.nombre, 0) + p.escanos_oficiales
                     
         partidos_sin_escano = {k: v for k, v in votos.items() if escanos[k] == 0}
         if partidos_sin_escano:
@@ -342,15 +352,14 @@ class Nacion:
             print(f"El partido con más votos sin rascar escaño fue {perdedor_ganador} con {partidos_sin_escano[perdedor_ganador]} votos.")
 
     # --- PREGUNTA 14: Parejas (partido-circunscripción) con menos votos ---
-    def peores_parejas_partido_circunscripcion(self, n=5):
+    def peores_parejas_partido_circunscripcion(self, n: int = 5) -> None:
         """Muestra los N partidos que obtuvieron los peores resultados en provincias concretas."""
         print(f"\n--- P14: LAS {n} PAREJAS PARTIDO-CIRCUNSCRIPCIÓN CON MENOS VOTOS ---")
         parejas = []
-        for ccaa in self.comunidades.values():
-            for circ in ccaa.circunscripciones:
-                for p in circ.partidos:
-                    if p.votos > 0:
-                        parejas.append((p.votos, p.nombre, circ.nombre))
+        for circ in self._filtrar('circunscripcion'):
+            for p in circ.partidos:
+                if p.votos > 0:
+                    parejas.append((p.votos, p.nombre, circ.nombre))
                         
         parejas.sort()
         for i in range(min(n, len(parejas))):
@@ -358,14 +367,13 @@ class Nacion:
             print(f"{i+1}. {partido} en {circ} con solo {votos} votos.")
 
     # --- PREGUNTA 15: Pactómetro ---
-    def pactometro(self, escanos_necesarios=176):
+    def pactometro(self, escanos_necesarios: int = 176) -> None:
         """Genera combinaciones de partidos que superen la mayoría absoluta."""
         print(f"\n--- P15: PACTÓMETRO (Objetivo: {escanos_necesarios} escaños) ---")
-        escanos_totales = {}
-        for ccaa in self.comunidades.values():
-            for circ in ccaa.circunscripciones:
-                for p in circ.partidos:
-                    escanos_totales[p.nombre] = escanos_totales.get(p.nombre, 0) + p.escanos_oficiales
+        escanos_totales: Dict[str, int] = {}
+        
+        for p in self._filtrar('partido'):
+            escanos_totales[p.nombre] = escanos_totales.get(p.nombre, 0) + p.escanos_oficiales
         
         partidos_con_escanos = {k: v for k, v in escanos_totales.items() if v > 0}
         nombres = list(partidos_con_escanos.keys())
