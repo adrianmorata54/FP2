@@ -151,21 +151,146 @@ class Nomenclator:
             if len(nom.datos_por_decada) >= n:
                 res.append(nom.nombre)
         return res
+    
+    # =========================================================
+    # EJERCICIOS BOLETÍN - SEMANA 2 (PREGUNTAS 9 A 15)
+    # =========================================================
 
-    # =========================================================
-    # PREPARATIVOS PARA SEMANA 2 (MÉTODOS GRÁFICOS Y EXTRAS)
-    # =========================================================
+    # --- PREGUNTA 9 ---
+    def de_moda_y_olvidados(self, n: int, genero: Optional[str] = None) -> List[str]:
+        """Estuvieron de moda las 'n' primeras décadas o menos y luego desaparecieron para siempre."""
+        res = []
+        # Seleccionamos cuáles son las 'n' primeras décadas de la historia registrada
+        primeras_decadas = self.decadas_ordenadas[:n]
+        
+        for nom in self._filtrar(genero):
+            decadas_nom = list(nom.datos_por_decada.keys())
+            if not decadas_nom: 
+                continue
+            
+            # Comprobamos si TODAS las apariciones del nombre están dentro de esas primeras décadas
+            if all(d in primeras_decadas for d in decadas_nom):
+                res.append(nom.nombre)
+        return res
+
+    # --- PREGUNTA 10 ---
+    def recientes_y_nuevos(self, n: int, genero: Optional[str] = None) -> List[str]:
+        """Se han puesto de moda SOLO en las últimas 'n' décadas (antes no existían en el top)."""
+        res = []
+        # Seleccionamos las últimas 'n' décadas
+        ultimas_decadas = self.decadas_ordenadas[-n:]
+        
+        for nom in self._filtrar(genero):
+            decadas_nom = list(nom.datos_por_decada.keys())
+            if not decadas_nom: 
+                continue
+            
+            # Comprobamos si TODAS sus apariciones ocurren solo al final del histórico
+            if all(d in ultimas_decadas for d in decadas_nom):
+                res.append(nom.nombre)
+        return res
+
+    # --- PREGUNTA 11 ---
+    def nombres_resurgidos(self, n: int, m: int, genero: Optional[str] = None) -> List[str]:
+        """Estuvieron de moda 'n' décadas, desaparecieron 'm' décadas y volvieron a resurgir."""
+        import re
+        res = []
+        # Truco profesional: Creamos una "línea temporal" de 1s (aparece) y 0s (no aparece).
+        # Luego usamos una Expresión Regular para buscar el patrón exacto.
+        # Patron: 'n' unos seguidos, 'm' ceros seguidos, y al menos un 1 al final.
+        patron = re.compile(rf"1{{{n},}}0{{{m},}}1")
+        
+        for nom in self._filtrar(genero):
+            # Generamos la línea temporal del nombre (Ej: "1110001")
+            timeline = "".join(["1" if d in nom.datos_por_decada else "0" for d in self.decadas_ordenadas])
+            
+            # Si la línea temporal encaja con el patrón, lo guardamos
+            if patron.search(timeline):
+                res.append(nom.nombre)
+        return res
+
+    # --- PREGUNTA 12 ---
     def grafica_tendencia(self, lista_nombres: List[str]):
         """Dibuja una gráfica con la evolución del 'tanto por mil' de los nombres pedidos."""
         plt.figure(figsize=(10,5))
         for s in lista_nombres:
             if s in self.nombres:
                 n = self.nombres[s]
-                # Eje X (décadas) y Eje Y (tanto por mil, que es el segundo valor de la tupla)
-                x = list(n.datos_por_decada.keys())
-                y = [pmil for _, pmil in n.datos_por_decada.values()]
+                
+                decadas_ordenadas = sorted(n.datos_por_decada.keys())
+                
+                x = decadas_ordenadas
+                y = [n.datos_por_decada[d][1] for d in decadas_ordenadas]
+                
                 plt.plot(x, y, label=s, marker='o')
         
+        plt.title("Tendencia de nombres a lo largo del tiempo")
+        plt.xlabel("Décadas")
+        plt.ylabel("Tanto por mil")
         plt.legend()
+        plt.grid()
+        plt.show()
+
+    # --- PREGUNTA 13 ---
+    def mayor_incremento_absoluto(self, n: int, genero: Optional[str] = None) -> List[str]:
+        """Devuelve los 'n' nombres con la mayor subida de tanto por mil de una década a la siguiente."""
+        incrementos = []
+        
+        for nom in self._filtrar(genero):
+            decadas_nom = sorted(nom.datos_por_decada.keys())
+            max_inc = 0
+            
+            # Comparamos cada década en la que aparece con la siguiente
+            for i in range(len(decadas_nom) - 1):
+                d1 = decadas_nom[i]
+                d2 = decadas_nom[i+1]
+                
+                # Verificamos que sean décadas consecutivas temporalmente (que no haya saltos)
+                idx1 = self.decadas_ordenadas.index(d1)
+                idx2 = self.decadas_ordenadas.index(d2)
+                
+                if idx2 - idx1 == 1: # Son consecutivas
+                    # Restamos el tanto por mil de la segunda década menos el de la primera
+                    inc = nom.datos_por_decada[d2][1] - nom.datos_por_decada[d1][1]
+                    if inc > max_inc:
+                        max_inc = inc
+                        
+            if max_inc > 0:
+                incrementos.append((nom.nombre, max_inc))
+                
+        # Ordenamos por el incremento (de mayor a menor) y nos quedamos con los nombres
+        incrementos.sort(key=lambda x: x[1], reverse=True)
+        return [x[0] for x in incrementos[:n]]
+
+    # --- PREGUNTA 14 ---
+    def diversificacion_nombres(self, n: int, genero: Optional[str] = None) -> Dict[int, float]:
+        """Calcula, para cada década, la suma de los 'tanto por mil' de los 'n' nombres más comunes."""
+        # Agrupamos todos los tanto por mil registrados en cada década
+        pmil_por_decada = {d: [] for d in self.decadas_ordenadas}
+        
+        for nom in self._filtrar(genero):
+            for decada, (_, pmil) in nom.datos_por_decada.items():
+                pmil_por_decada[decada].append(pmil)
+                
+        dict_diversificacion = {}
+        for d in self.decadas_ordenadas:
+            # Ordenamos de mayor a menor, cogemos los 'n' primeros y los sumamos
+            top_n = sorted(pmil_por_decada[d], reverse=True)[:n]
+            dict_diversificacion[d] = round(sum(top_n), 2)
+            
+        return dict_diversificacion
+
+    # --- PREGUNTA 15 ---
+    def grafica_diversificacion(self, n: int, genero: Optional[str] = None):
+        """Dibuja una gráfica basada en los datos de diversificación."""
+        datos = self.diversificacion_nombres(n, genero)
+        x = list(datos.keys())
+        y = list(datos.values())
+        
+        plt.figure(figsize=(10, 5))
+        plt.plot(x, y, marker='s', color='purple', linestyle='--')
+        plt.title(f"Diversificación: Suma del tanto por mil de los {n} nombres más comunes")
+        plt.xlabel("Décadas")
+        plt.ylabel("Suma del Tanto por Mil")
         plt.grid()
         plt.show()
