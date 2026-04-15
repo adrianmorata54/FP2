@@ -3,13 +3,11 @@ import sys
 from factoria import Factoria
 
 def main():
-    # --- CONFIGURACIÓN DE RUTAS Y CARGA DE DATOS ---
     ruta_src = os.path.dirname(os.path.abspath(__file__))
     ruta_excel = os.path.abspath(os.path.join(ruta_src, '..', 'datos', 'frecuencia_nombres.xlsx'))
     
     print("Iniciando la lectura del Excel...")
     
-    # --- MEJORA: Control de errores en la lectura ---
     try:
         nomenclador = Factoria.crear_desde_excel(ruta_excel)
         print(f"¡Carga completada! Se han procesado {len(nomenclador.nombres)} nombres únicos.\n")
@@ -17,7 +15,7 @@ def main():
         print(f"\n❌ ERROR CRÍTICO: No se encuentra el archivo.")
         print(f"   Detalles: {e}")
         print("   Por favor, revisa que el archivo 'frecuencia_nombres.xlsx' esté en la carpeta 'datos'.")
-        sys.exit(1) # Detenemos el programa limpiamente
+        sys.exit(1)
 
     
     # ======================================================================

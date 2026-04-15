@@ -3,9 +3,7 @@ from typing import Dict, Tuple
 class Nombre:
     def __init__(self, nombre: str, genero: str):
         self.nombre = nombre
-        self.genero = genero  # 'H' o 'M'
-        
-        # Diccionario: clave -> década (int), valor -> (frecuencia_absoluta, tanto_por_mil)
+        self.genero = genero 
         self.datos_por_decada: Dict[int, Tuple[int, float]] = {}
 
     @property

@@ -32,23 +32,19 @@ class Nomenclator:
         """Exporta todos los datos guardados en la clase a un nuevo archivo Excel."""
         filas = []
         for n in self.nombres.values():
-            # Creamos la base de la fila con el nombre y su género
             d = {'Nombre': n.nombre, 'Genero': n.genero}
             
-            # Añadimos dinámicamente las columnas de cada década
             for decada, (frec, pmil) in n.datos_por_decada.items():
                 d[f"{decada}_Frec"] = frec
                 d[f"{decada}_PMil"] = pmil
             filas.append(d)
             
-        # Convertimos la lista de diccionarios a un DataFrame de pandas y lo guardamos
         pd.DataFrame(filas).to_excel(ruta_salida, index=False)
 
     # --- PREGUNTA 2 ---
     def mayor_frecuencia_absoluta(self, genero: Optional[str] = None) -> str:
         """Devuelve el nombre con el número total más alto de personas registradas."""
         filtrados = self._filtrar(genero)
-        # La función max busca el objeto con la 'frecuencia_acumulada' más alta
         if filtrados:
             return max(filtrados, key=lambda x: x.frecuencia_acumulada).nombre 
         return ""
@@ -56,9 +52,7 @@ class Nomenclator:
     # --- PREGUNTA 3 ---
     def n_mas_usados(self, n: int, genero: Optional[str] = None) -> List[str]:
         """Devuelve el top 'n' de nombres más puestos en la historia."""
-        # Ordenamos de mayor a menor (reverse=True) según la frecuencia acumulada
         ordenados = sorted(self._filtrar(genero), key=lambda x: x.frecuencia_acumulada, reverse=True)
-        # Extraemos solo la palabra (el nombre) de los primeros 'n' objetos
         return [obj.nombre for obj in ordenados[:n]]
 
     # --- PREGUNTA 4 ---
@@ -66,17 +60,14 @@ class Nomenclator:
         """Calcula cuántas personas nacieron en cada década sumando por la inicial de su nombre."""
         res = {}
         for nom in self._filtrar(genero):
-            ini = nom.nombre[0] # Cogemos la primera letra del nombre
+            ini = nom.nombre[0] 
             
-            # Si la letra no está registrada, le creamos su plantilla de décadas a cero
             if ini not in res: 
                 res[ini] = {d: 0 for d in self.decadas_ordenadas}
                 
-            # Sumamos las frecuencias a la década correspondiente de esa inicial
             for decada, (frec, _) in nom.datos_por_decada.items():
                 res[ini][decada] += frec
                 
-        # Transformamos el diccionario interno en listas de tuplas (como pide el boletín)
         return {k: list(v.items()) for k, v in res.items()}
 
     # --- PREGUNTA 5 ---
@@ -84,18 +75,15 @@ class Nomenclator:
         """Averigua qué letra inicial triunfó en cada década y qué porcentaje representaba."""
         frec_iniciales = self.frecuencia_por_inicial(genero)
         
-        # Diccionarios para llevar la cuenta de los totales y la letra ganadora
         totales_decada = {d: 0 for d in self.decadas_ordenadas}
         max_letras = {d: {'letra': '', 'frec': -1} for d in self.decadas_ordenadas}
         
         for inicial, lista_datos in frec_iniciales.items():
             for decada, frec in lista_datos:
-                totales_decada[decada] += frec # Sumamos para saber el total de nacidos en la década
-                # Si esta letra tiene más frecuencia que la actual ganadora, la sustituimos
+                totales_decada[decada] += frec
                 if frec > max_letras[decada]['frec']:
                     max_letras[decada] = {'letra': inicial, 'frec': frec}
                     
-        # Calculamos el porcentaje final
         resultado = {}
         for d in self.decadas_ordenadas:
             if totales_decada[d] > 0:
@@ -106,7 +94,6 @@ class Nomenclator:
     # --- PREGUNTA 6 ---
     def evolucion_compuestos(self, genero: Optional[str] = None) -> List[Tuple[int, float, float]]:
         """Calcula el porcentaje de nombres simples frente a compuestos en cada década."""
-        # Plantilla para contar simples y compuestos por década
         conteo = {d: {'simples': 0, 'compuestos': 0} for d in self.decadas_ordenadas}
         
         for nom in self._filtrar(genero):
@@ -114,7 +101,6 @@ class Nomenclator:
             for decada, (frec, _) in nom.datos_por_decada.items():
                 conteo[decada][tipo] += frec
         
-        # Convertir a porcentajes y agrupar en tuplas
         evolucion = []
         for d in self.decadas_ordenadas:
             total = conteo[d]['simples'] + conteo[d]['compuestos']
@@ -127,14 +113,12 @@ class Nomenclator:
     # --- PREGUNTA 7 ---
     def longitud_media_por_decada(self, genero: Optional[str] = None) -> List[Tuple[int, float]]:
         """Calcula la media de letras que tienen los nombres en cada época."""
-        # Un diccionario para guardar todas las longitudes medidas en cada década
         longitudes = {d: [] for d in self.decadas_ordenadas}
         
         for nom in self._filtrar(genero):
             for decada in nom.datos_por_decada.keys():
                 longitudes[decada].append(len(nom.nombre))
                 
-        # Sacamos la media (Suma de longitudes / Cantidad de nombres medidos)
         resultado = []
         for d in self.decadas_ordenadas:
             if longitudes[d]:
@@ -147,7 +131,6 @@ class Nomenclator:
         """Devuelve los nombres clásicos que han estado 'n' décadas o más en el histórico."""
         res = []
         for nom in self._filtrar(genero):
-            # Si el tamaño de su diccionario es mayor o igual a 'n', significa que sobrevivió 'n' décadas
             if len(nom.datos_por_decada) >= n:
                 res.append(nom.nombre)
         return res
