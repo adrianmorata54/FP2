@@ -243,21 +243,25 @@ def main():
             # Algoritmo 1
             vec_alea, v_alea = busqueda_aleatoria(funcion, max_evals=EVALS_BASE)
             print(f" ├── [1] Búsqueda Aleatoria:       {v_alea:10.4f}")
+            print(f" │       └─> Vector: {np.round(vec_alea, 4)}")
             actualizar_ganador("Búsqueda Aleatoria", vec_alea, v_alea)
             
             # Algoritmo 2
             vec_esca, v_esca = escalada_simple(funcion, max_evals=EVALS_BASE)
             print(f" ├── [2] Escalada Simple:          {v_esca:10.4f}")
+            print(f" │       └─> Vector: {np.round(vec_esca, 4)}")
             actualizar_ganador("Escalada Simple", vec_esca, v_esca)
             
             # Algoritmo 3
             vec_max, v_max = escalada_maxima_pendiente(funcion, max_evals=EVALS_BASE)
             print(f" ├── [3] Escalada Máx. Pendiente:  {v_max:10.4f}")
+            print(f" │       └─> Vector: {np.round(vec_max, 4)}")
             actualizar_ganador("Escalada Máxima Pendiente", vec_max, v_max)
             
             # Algoritmo 4
             vec_rein, v_rein = escalada_con_reinicios(funcion, max_evals=EVALS_BASE)
             print(f" ├── [4] Escalada con Reinicios:   {v_rein:10.4f}")
+            print(f" │       └─> Vector: {np.round(vec_rein, 4)}")
             actualizar_ganador("Escalada con Reinicios", vec_rein, v_rein)
             
             # Algoritmo 5 (Grid Search + Recocido Simulado)
@@ -272,6 +276,7 @@ def main():
                 funcion, max_evals=evals_restantes, step_size=mejor_step, alpha=mejor_alpha
             )
             print(f" ├── [5] Recocido Simulado (step={mejor_step}, α={mejor_alpha}): {v_rec:.4f}")
+            print(f" │       └─> Vector: {np.round(vec_rec, 4)}")
             actualizar_ganador("Recocido Simulado", vec_rec, v_rec)
             
             # --- RESULTADOS FINALES DE LA FUNCIÓN ---
@@ -282,7 +287,7 @@ def main():
             print("\n" + "★"*60)
             print(f" 🏆 GANADOR: {algoritmo_ganador}")
             print(f" 🎯 Mínimo Encontrado: {mejor_valor_global:.6f}")
-            print(" 📍 Vector Solución:")
+            print(" 📍 Vector Solución (Mejor Global):")
             print(f" {np.round(mejor_vector_global, 4)}")
             print("★"*60 + "\n")
             
