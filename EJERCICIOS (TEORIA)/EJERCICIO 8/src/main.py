@@ -125,6 +125,24 @@ def main():
         print(f"  📍 {e1['nombre']}: Latitud {e1['coords'][0]:.4f}, Longitud {e1['coords'][1]:.4f}")
         print(f"  📍 {e2['nombre']}: Latitud {e2['coords'][0]:.4f}, Longitud {e2['coords'][1]:.4f}")
         print(f"📏 Distancia en línea recta (vuelo de pájaro): {dist:.2f} km")
+    
+    # 10. ANÁLISIS GEOGRÁFICO AVANZADO (Cercanía y Longitud de Líneas)
+    print("\n--- Análisis Geográfico Avanzado ---")
+    
+    # A) Cálculo de la línea con mayor recorrido real
+    print("🛤️  Calculando qué línea tiene más kilómetros reales (esto puede tardar unos segundos)...")
+    nombre_l, kms = lineas_obj.linea_mas_larga_km(estaciones_obj)
+    print(f"✅ La línea más larga es la '{nombre_l}' con un recorrido de {kms:.2f} km.")
+
+    # B) Búsqueda por cercanía (Ejemplo: Un comercio en la Puerta de Alcalá)
+    lat_comercio, lon_comercio = 40.4199, -3.6887
+    print(f"🛍️  Buscando la estación más cercana a la Puerta de Alcalá ({lat_comercio}, {lon_comercio})...")
+    cercana = estaciones_obj.estacion_mas_cercana(lat_comercio, lon_comercio)
+    
+    if cercana['estacion']:
+        print(f"✅ La estación más próxima es '{cercana['estacion']}' a {cercana['distancia_km']*1000:.0f} metros.")
+    else:
+        print("❌ No se pudo determinar la estación más cercana.")
 
 if __name__ == "__main__":
     main()

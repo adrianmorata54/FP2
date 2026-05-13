@@ -197,6 +197,29 @@ class Lineas:
             "transbordos": transbordos,
             "instrucciones": instrucciones
         }
+        
+    def linea_mas_larga_km(self, estaciones_obj) -> tuple:
+        """
+        Calcula qué línea es la más larga en kilómetros reales (no en paradas).
+        Recibe el objeto estaciones_obj para usar su método de cálculo de distancia.
+        """
+        max_dist = -1
+        linea_ganadora = ""
+
+        for nombre_linea, paradas in self._red.items():
+            distancia_total = 0
+            # Recorremos la línea tramo a tramo (de parada i a parada i+1)
+            for i in range(len(paradas) - 1):
+                resultado = estaciones_obj.distancia_real_km(paradas[i], paradas[i+1])
+                
+                if "distancia_km" in resultado:
+                    distancia_total += resultado["distancia_km"]
+            
+            if distancia_total > max_dist:
+                max_dist = distancia_total
+                linea_ganadora = nombre_linea
+                
+        return linea_ganadora, max_dist
 
     def __eq__(self, otro) -> bool:
         """Permite comparar si dos redes son idénticas."""

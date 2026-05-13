@@ -102,39 +102,59 @@ class Estaciones:
             
         return None, None
 
-    def distancia_real_km(self, estacion1: str, estacion2: str) -> dict:
+    def _haversine(self, lat1, lon1, lat2, lon2):
         """
-        Calcula la distancia física entre dos puntos usando trigonometría esférica.
+        Fórmula matemática pura. 
+        Se extrae aquí para que la usen todos los métodos de distancia.
         """
-        if estacion1 not in self._nodos or estacion2 not in self._nodos:
-            return {"error": "Estación no encontrada."}
-
-        # Obtenemos latitudes y longitudes
-        lat1, lon1 = self._pedir_coordenadas(estacion1)
-        lat2, lon2 = self._pedir_coordenadas(estacion2)
-
-        if not lat1 or not lat2:
-            return {"error": "No se han podido obtener las coordenadas de Internet."}
-
-        # --- Algoritmo de Haversine ---
-        R = 6371.0 # Radio medio de la Tierra en kilómetros
-
-        # Convertimos grados a radianes (necesario para las funciones de math)
+        R = 6371.0
         lat1_rad, lon1_rad = math.radians(lat1), math.radians(lon1)
         lat2_rad, lon2_rad = math.radians(lat2), math.radians(lon2)
 
         dlon = lon2_rad - lon1_rad
         dlat = lat2_rad - lat1_rad
 
-        # Fórmula matemática para la distancia sobre una esfera
         a = math.sin(dlat / 2)**2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlon / 2)**2
         c = 2 * math.asin(math.sqrt(a))
-        distancia = R * c
+        return R * c
+
+    def distancia_real_km(self, estacion1: str, estacion2: str) -> dict:
+        if estacion1 not in self._nodos or estacion2 not in self._nodos:
+            return {"error": "Estación no encontrada."}
+
+        lat1, lon1 = self._pedir_coordenadas(estacion1)
+        lat2, lon2 = self._pedir_coordenadas(estacion2)
+
+        if not lat1 or not lat2:
+            return {"error": "Error con las coordenadas."}
+
+        # ¡REUTILIZAMOS EL MOTOR!
+        distancia = self._haversine(lat1, lon1, lat2, lon2)
 
         return {
             "estacion1": {"nombre": estacion1, "coords": (lat1, lon1)},
             "estacion2": {"nombre": estacion2, "coords": (lat2, lon2)},
             "distancia_km": distancia
+        }
+
+    def estacion_mas_cercana(self, mi_lat: float, mi_lon: float) -> dict:
+        mejor_estacion = None
+        distancia_minima = float('inf')
+
+        for nombre_est in self._nodos.keys():
+            lat_est, lon_est = self._pedir_coordenadas(nombre_est)
+            
+            if lat_est and lon_est:
+                # ¡VOLVEMOS A REUTILIZAR EL MISMO MOTOR!
+                dist = self._haversine(mi_lat, mi_lon, lat_est, lon_est)
+                
+                if dist < distancia_minima:
+                    distancia_minima = dist
+                    mejor_estacion = nombre_est
+
+        return {
+            "estacion": mejor_estacion,
+            "distancia_km": distancia_minima
         }
 
     def __eq__(self, otro) -> bool:
