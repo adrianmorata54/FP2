@@ -333,9 +333,9 @@ if __name__ == "__main__":
 
         ejecutar_ejercicio_1()
 
-        #ejecutar_ejercicio_2()
+        ejecutar_ejercicio_2()
 
-        #ejecutar_ejercicio_3()
+        ejecutar_ejercicio_3()
 
     except FileNotFoundError:
 
