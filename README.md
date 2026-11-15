@@ -4,8 +4,6 @@ Repositorio con los **boletines de teoría**, las **prácticas de laboratorio** 
 
 Todo el código está escrito en **Python** y sigue una metodología de **programación orientada a objetos**: clases, herencia, clases abstractas (`ABC`), factorías, igualdad/hash de objetos y estructuras de datos (listas, tuplas, diccionarios) aplicadas a problemas reales y de Inteligencia Artificial.
 
-> **Autor:** _[tu nombre]_
-
 ---
 
 ## Índice
